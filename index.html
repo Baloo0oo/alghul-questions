@@ -159,20 +159,23 @@ function render(){
   var h="";
   if(S.intro){
     h='<h1>Questions for your website</h1><p class="lead">'+esc(SEND_TO_NAME)+' needs these to build the Al-Ghul website. About 15 minutes.</p>'+
-      '<div class="note">• Skip anything you don\'t know yet.<br>• Your answers save on this phone, so you can stop and come back.<br>• At the end, one tap sends everything to '+esc(SEND_TO_NAME)+' on WhatsApp.<br>• Photos and logo: send them in the same WhatsApp chat after.</div>';
+      '<div class="note">• Skip anything you don\'t know yet.<br>• Your answers save on this phone, so you can stop and come back.<br>• At the end you get one PDF with all your answers. Send it to '+esc(SEND_TO_NAME)+' on WhatsApp.<br>• Photos and logo: send them in the same WhatsApp chat after.</div>';
   } else if(S.send){
     var parts=buildParts(), all=parts.join("\n\n");
     var answered=countAnswered();
-    h='<h1>Send your answers</h1><p class="lead">You answered '+answered+' question'+(answered===1?'':'s')+'. Tap below to send them to '+esc(SEND_TO_NAME)+' on WhatsApp, then press send in WhatsApp.</p>';
+    h='<h1>Send your answers</h1><p class="lead">You answered '+answered+' question'+(answered===1?'':'s')+'. Make the PDF, then send it to '+esc(SEND_TO_NAME)+' on WhatsApp.</p>'+
+      '<div id="pdfBox"><button class="btn wa" id="makePdf" type="button">Make my answers PDF</button></div>'+
+      '<div class="status" id="pdfStatus"></div>'+
+      '<details style="margin-top:18px"><summary class="hint" style="cursor:pointer">PDF not working? Send as a WhatsApp message instead</summary><div style="margin-top:12px">';
     if(parts.length===1){
-      h+='<a class="btn wa" href="'+waLink(parts[0])+'">Send on WhatsApp</a>';
+      h+='<a class="btn copy" style="margin-bottom:10px" href="'+waLink(parts[0])+'">Send as WhatsApp message</a>';
     } else {
-      h+='<div class="note">Your answers are long, so they go in '+parts.length+' messages. Tap each one in order.</div><div class="parts">';
-      parts.forEach(function(p,i){h+='<a class="btn wa" href="'+waLink(p)+'">Send part '+(i+1)+' of '+parts.length+'</a>';});
+      h+='<p class="hint">Your answers are long, so they go in '+parts.length+' messages. Tap each one in order.</p><div class="parts" style="margin-bottom:10px">';
+      parts.forEach(function(p,i){h+='<a class="btn copy" href="'+waLink(p)+'">Send part '+(i+1)+' of '+parts.length+'</a>';});
       h+='</div>';
     }
     h+='<button class="btn copy" id="copy" type="button">Copy all answers</button><div class="status" id="status"></div>'+
-       '<p class="hint" style="margin-top:14px">If WhatsApp doesn\'t open: tap Copy, open WhatsApp, and paste into the chat with '+esc(SEND_TO_NAME)+' (+'+SEND_TO+').</p>'+
+       '<p class="hint" style="margin-top:10px">Or tap Copy, open WhatsApp, and paste into the chat with '+esc(SEND_TO_NAME)+' (+'+SEND_TO+').</p></div></details>'+
        '<div class="review" aria-label="Your answers">'+esc(all)+'</div>';
   } else {
     h='<h1>'+esc(S.title)+'</h1>';
@@ -243,6 +246,124 @@ function wire(){
     function fail(){var r=document.querySelector(".review");var sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents(r);sel.removeAllRanges();sel.addRange(rg);st.textContent="Couldn't copy automatically. The answers are selected below: long-press and copy.";}
     try{navigator.clipboard.writeText(txt).then(ok,fail);}catch(e){fail();}
   };
+  var mk=document.getElementById("makePdf");
+  if(mk) mk.onclick=makePdf;
+}
+
+/* ===== PDF of all answers =====
+   Each page is drawn on a canvas with the browser's own text engine (so Arabic
+   joins and mixed Arabic/English lines come out right), then placed in a PDF. */
+var PDF_LIB="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+function loadLib(){
+  return new Promise(function(res,rej){
+    if(window.jspdf) return res();
+    var s=document.createElement("script"); s.src=PDF_LIB; s.onload=res; s.onerror=function(){rej(new Error("lib"))}; document.head.appendChild(s);
+  });
+}
+var FONT="'Readex Pro', system-ui, sans-serif";
+function loadFonts(){
+  if(!document.fonts||!document.fonts.load) return Promise.resolve();
+  var sample="Aa1 الغول ٣";
+  return Promise.all([400,600,700].map(function(w){return document.fonts.load(w+" 24px 'Readex Pro'",sample);})).catch(function(){});
+}
+function isRtl(s){var m=String(s).match(/[A-Za-z؀-ۿ]/);return !!(m&&/[؀-ۿ]/.test(m[0]));}
+function buildPages(){
+  var W=1240,H=1754,M=96,CW=W-2*M, pages=[], c, ctx, y;
+  function newPage(){
+    c=document.createElement("canvas"); c.width=W; c.height=H; ctx=c.getContext("2d");
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H); ctx.textBaseline="top"; y=M;
+    pages.push(c);
+    if(pages.length>1){ctx.font="400 20px "+FONT;ctx.fillStyle="#9AA09A";ctx.direction="ltr";ctx.textAlign="left";ctx.fillText("Al-Ghul website answers · page "+pages.length,M,H-M/2-10);}
+  }
+  function font(w,px){ctx.font=w+" "+px+"px "+FONT;}
+  // Lines keep the direction of the paragraph they came from, so a wrapped
+  // Arabic paragraph stays right-aligned even when a line starts in English.
+  function wrap(text,w,px,maxW,forceLtr){
+    font(w,px); var out=[];
+    String(text).split("\n").forEach(function(par){
+      var rtl=!forceLtr&&isRtl(par), words=par.split(/ +/), line="";
+      words.forEach(function(wd){
+        var test=line?line+" "+wd:wd;
+        if(ctx.measureText(test).width<=maxW||!line){line=test;}
+        else{out.push({t:line,rtl:rtl});line=wd;}
+        while(ctx.measureText(line).width>maxW&&line.length>1){ // very long word: hard split
+          var cut=line.length; while(cut>1&&ctx.measureText(line.slice(0,cut)).width>maxW)cut--;
+          out.push({t:line.slice(0,cut),rtl:rtl}); line=line.slice(cut);
+        }
+      });
+      out.push({t:line,rtl:rtl});
+    });
+    return out;
+  }
+  function draw(lines,w,px,lh,color,x0,maxW){
+    font(w,px); ctx.fillStyle=color;
+    lines.forEach(function(l){
+      if(typeof l==="string") l={t:l,rtl:false};
+      var r=l.rtl; ctx.direction=r?"rtl":"ltr"; ctx.textAlign=r?"right":"left";
+      ctx.fillText(l.t,r?x0+maxW:x0,y); y+=lh;
+    });
+  }
+  function room(h){if(y+h>H-M-30)newPage();}
+  newPage();
+  // header
+  draw(["Al-Ghul website answers"],700,46,62,"#16181B",M,CW);
+  var d=new Date(), date=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  draw(wrap((A.name||"(no name given)")+"  ·  "+date+"  ·  "+countAnswered()+" answered",400,24,CW,true),400,24,34,"#5C636B",M,CW);
+  y+=10; ctx.fillStyle="#16181B"; ctx.fillRect(M,y,CW,5); y+=26;
+  STEPS.forEach(function(S){
+    if(!S.qs) return;
+    // keep the section title with its first question
+    var q0=S.qs[0], a0=fmt(q0), firstH=34+(a0?wrap(a0.replace(/^\n/,""),400,25,CW-40).length*36:36)+28;
+    room(70+firstH);
+    y+=14; ctx.fillStyle="#E2F0E8"; ctx.fillRect(M,y,CW,58);
+    var yy=y; y+=14; draw([S.title],700,30,40,"#16181B",M+20,CW-40); y=yy+58+12;
+    S.qs.forEach(function(q){
+      var a=fmt(q), qLines=wrap(q.q,600,21,CW-40), aLines=a?wrap(a.replace(/^\n/,""),400,25,CW-40):[{t:"(skipped)",rtl:false}];
+      var h=qLines.length*30+aLines.length*36+28;
+      if(h>H-2*M-60){ // very long answer: draw it across pages line by line
+        room(qLines.length*30+40);
+        y+=6; draw(qLines,600,21,30,"#5C636B",M+20,CW-40);
+        aLines.forEach(function(l){room(36);draw([l],400,25,36,"#16181B",M+20,CW-40);});
+      } else {
+        room(h); y+=6;
+        draw(qLines,600,21,30,"#5C636B",M+20,CW-40);
+        draw(aLines,400,25,36,a?"#16181B":"#A5ABA3",M+20,CW-40);
+      }
+      y+=12; ctx.fillStyle="#E6E8E4"; ctx.fillRect(M,y,CW,2); y+=10;
+    });
+  });
+  room(60); y+=24;
+  draw(["Photos and logo are sent separately on WhatsApp."],400,21,30,"#5C636B",M,CW);
+  return pages;
+}
+function fileName(){var n=(A.name||"answers").trim().replace(/[^\w؀-ۿ]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"answers";return "Al-Ghul-answers-"+n+".pdf";}
+function makePdf(){
+  var box=document.getElementById("pdfBox"), st=document.getElementById("pdfStatus"), btn=document.getElementById("makePdf");
+  btn.disabled=true; btn.textContent="Making PDF…"; st.textContent="";
+  Promise.all([loadFonts(),loadLib()]).then(function(){
+    var pages=buildPages(), doc=new window.jspdf.jsPDF({unit:"pt",format:"a4",compress:true});
+    pages.forEach(function(p,i){if(i)doc.addPage();doc.addImage(p.toDataURL("image/jpeg",0.9),"JPEG",0,0,595.28,841.89);});
+    doc.setProperties({title:"Al-Ghul website answers"});
+    return doc.output("blob");
+  }).then(function(blob){
+    var name=fileName(), url=URL.createObjectURL(blob), file=null;
+    try{file=new File([blob],name,{type:"application/pdf"});}catch(e){}
+    var canShare=false; try{canShare=!!(file&&navigator.canShare&&navigator.canShare({files:[file]}));}catch(e){}
+    box.innerHTML=(canShare?'<button class="btn wa" id="sharePdf" type="button">Send PDF (pick WhatsApp → '+esc(SEND_TO_NAME)+')</button>':'')+
+      '<a class="btn '+(canShare?'copy':'wa')+'" id="dlPdf" href="'+url+'" download="'+esc(name)+'" style="margin-bottom:10px">Download PDF</a>';
+    st.textContent=canShare?"PDF ready. Tap Send PDF, pick WhatsApp, then "+SEND_TO_NAME+".":"PDF ready. Download it, then attach it in WhatsApp to "+SEND_TO_NAME+" (📎 → Document).";
+    var sh=document.getElementById("sharePdf");
+    if(sh) sh.onclick=function(){
+      navigator.share({files:[file],title:"Al-Ghul website answers"}).catch(function(err){
+        if(err&&err.name==="AbortError") return;
+        st.textContent="Sharing didn't open. Tap Download PDF, then attach it in WhatsApp (📎 → Document).";
+      });
+    };
+  }).catch(function(){
+    btn.disabled=false; btn.textContent="Try again";
+    st.textContent="Couldn't make the PDF (check your internet). You can send your answers as a WhatsApp message below instead.";
+    var dt=document.querySelector("details"); if(dt) dt.open=true;
+  });
 }
 
 /* ===== Build the WhatsApp message ===== */
