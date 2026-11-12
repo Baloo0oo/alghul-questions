@@ -163,7 +163,7 @@ function render(){
   } else if(S.send){
     var parts=buildParts(), all=parts.join("\n\n");
     var answered=countAnswered();
-    h='<h1>Send your answers</h1><p class="lead">You answered '+answered+' questions. Tap below to send them to '+esc(SEND_TO_NAME)+' on WhatsApp, then press send in WhatsApp.</p>';
+    h='<h1>Send your answers</h1><p class="lead">You answered '+answered+' question'+(answered===1?'':'s')+'. Tap below to send them to '+esc(SEND_TO_NAME)+' on WhatsApp, then press send in WhatsApp.</p>';
     if(parts.length===1){
       h+='<a class="btn wa" href="'+waLink(parts[0])+'">Send on WhatsApp</a>';
     } else {
