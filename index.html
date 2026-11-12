@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Al-Ghul website questions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4F5F2;--card:#FFFFFF;--ink:#16181B;--ink-2:#5C636B;--line:#DEE1DC;--accent:#1F6B4E;--accent-soft:#E2F0E8;--wa:#1FA855;color-scheme:light}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 'Readex Pro',system-ui,sans-serif;min-height:100vh;padding-bottom:110px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 18px 10px}
+.top-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-2);margin-bottom:8px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+main{max-width:620px;margin:0 auto;padding:8px 18px}
+h1{font-size:26px;line-height:1.2;font-weight:700;margin:6px 0 6px}
+.lead{color:var(--ink-2);margin-bottom:20px}
+.q{background:var(--card);border-radius:16px;padding:18px;margin-bottom:12px}
+.q > label,.q .qt{display:block;font-weight:600;margin-bottom:4px}
+.hint{font-size:14px;color:var(--ink-2);margin-bottom:10px}
+input[type=text],input[type=tel],input[type=email],textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;background:#fff;font-size:16px}
+textarea{min-height:110px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chips button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:11px 16px;font-size:15px;cursor:pointer;min-height:44px}
+.chips button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chips + input,.chips + textarea{margin-top:10px}
+.designs{display:grid;gap:10px;margin-top:8px}
+.designs button{display:flex;gap:12px;align-items:center;text-align:start;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:12px;cursor:pointer}
+.designs button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.sw{display:flex;flex-shrink:0}
+.sw i{width:18px;height:40px}
+.sw i:first-child{border-radius:8px 0 0 8px}.sw i:last-child{border-radius:0 8px 8px 0}
+.designs b{display:block}
+.designs span{font-size:14px;color:var(--ink-2)}
+.acct{display:grid;gap:10px}
+.acct .row{border-top:1px solid var(--line);padding-top:10px}
+.acct .row:first-child{border:0;padding-top:0}
+.acct .name{font-size:15px;font-weight:500}
+.acct .chips button{padding:8px 13px;min-height:38px;font-size:14px}
+.note{background:var(--accent-soft);border-radius:14px;padding:14px 16px;font-size:15px;margin-bottom:14px}
+.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(244,245,242,.96);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding:12px 18px calc(12px + env(safe-area-inset-bottom))}
+.nav-in{max-width:620px;margin:0 auto;display:flex;gap:10px}
+.btn{flex:1;border:0;border-radius:14px;padding:16px;font-weight:600;font-size:16px;cursor:pointer;text-align:center;text-decoration:none;display:inline-flex;justify-content:center;align-items:center;gap:8px}
+.btn.back{flex:0 0 auto;background:#fff;border:1.5px solid var(--line);padding:16px 20px}
+.btn.next{background:var(--ink);color:#fff}
+.btn.wa{background:var(--wa);color:#fff;width:100%;margin-bottom:10px}
+.btn.copy{background:#fff;border:1.5px solid var(--ink);width:100%}
+.review{background:var(--card);border-radius:16px;padding:16px;font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;border:1px solid var(--line);margin:14px 0}
+.status{font-size:14px;color:var(--accent);min-height:20px;margin-top:8px;text-align:center}
+.empty{color:#B0473A;font-size:14px;margin-top:6px}
+.saved{font-size:12px;color:var(--ink-2)}
+.parts{display:grid;gap:10px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-row"><span id="stepLabel">Start</span><span class="saved" id="saved"></span></div>
+  <div class="bar"><i id="bar"></i></div>
+</div>
+<main id="app"></main>
+<div class="nav"><div class="nav-in" id="nav"></div></div>
+
+<script>
+/* ===== Settings ===== */
+var SEND_TO = "201120593828";       // WhatsApp number that receives the answers (digits only)
+var SEND_TO_NAME = "Momen";
+
+/* ===== Questions ===== */
+var STEPS = [
+ {title:"Hi 👋", intro:true},
+ {title:"You and your clients", qs:[
+  {id:"name",t:"text",q:"Your full name"},
+  {id:"phone",t:"tel",q:"WhatsApp number for the website",hint:"The number clients will message"},
+  {id:"sell",t:"multi",q:"What do you sell?",opts:["Diet plans","Training programs","Both together","In-gym personal training"]},
+  {id:"audience",t:"multi",q:"Who are your clients?",opts:["Men","Women","Beginners","Advanced","Athletes","Older clients"]},
+  {id:"where",t:"multi",q:"Where are your clients?",opts:["Egypt","Gulf","Rest of Arab world","Europe / US"]},
+  {id:"langs",t:"one",q:"Website language",opts:["Arabic only","English only","Both, with a switch"]},
+  {id:"dialect",t:"one",q:"Arabic style",opts:["Egyptian","Gulf","Levantine","Formal Arabic"]}
+ ]},
+ {title:"Brand", qs:[
+  {id:"brand_en",t:"text",q:"Brand name in English",hint:"Al-Ghul, Al Ghoul, El Ghoul…",ph:"Al-Ghul"},
+  {id:"brand_ar",t:"text",q:"Brand name in Arabic",ph:"الغول"},
+  {id:"tagline",t:"text",q:"One-line tagline",hint:"What you promise, in one sentence. Optional."},
+  {id:"design",t:"design",q:"Which design do you like?"},
+  {id:"logo",t:"one",q:"Do you have a logo?",opts:["Yes, I'll send it","No, I need one"]},
+  {id:"colors",t:"text",q:"Colours you like or hate",hint:"Optional"},
+  {id:"social",t:"area",q:"Your social links",hint:"Instagram, TikTok, YouTube, Facebook. Paste the links.",ph:"instagram.com/…"},
+  {id:"email",t:"email",q:"Email for the website"}
+ ]},
+ {title:"Your packages", qs:[
+  {id:"packages",t:"area",q:"Package names and what's in each",ph:"e.g. Diet only / Training only / Full coaching"},
+  {id:"durations",t:"multi",q:"Package lengths",opts:["1 month","2 months","3 months","4 months","5 months","6 months","12 months"]},
+  {id:"prices",t:"area",q:"Prices for each package and length",hint:"In EGP, and in USD if you take clients from abroad",ph:"Full 3 months: 4,000 EGP / $300"},
+  {id:"popular",t:"text",q:"Which package do you want highlighted?"},
+  {id:"includes",t:"multi",q:"What does a client get?",opts:["Diet plan","Training program","Client app","Weekly check-ins","WhatsApp support","Exercise form review","Meal prep guide","Grocery list"]},
+  {id:"checkin",t:"one",q:"How often do you check in?",opts:["Every week","Every 2 weeks","Every month"]},
+  {id:"discounts",t:"text",q:"Any discount codes?",hint:"Optional, e.g. RAMADAN15 = 15% off"}
+ ]},
+ {title:"Payment", qs:[
+  {id:"pay",t:"multi",q:"How do clients pay you?",opts:["InstaPay","Vodafone Cash","PayPal","Bank transfer","Cash"]},
+  {id:"instapay",t:"text",q:"InstaPay link or handle",hint:"Optional"},
+  {id:"paypal",t:"one",q:"Do you have a PayPal business account?",opts:["Yes","No","Not needed"]},
+  {id:"afterpay",t:"area",q:"What happens after they pay?",ph:"e.g. They send me the screenshot on WhatsApp, I send the plan in 48 hours"},
+  {id:"refund",t:"area",q:"Your refund rules",hint:"Exactly as you want them written"}
+ ]},
+ {title:"About you as a coach", qs:[
+  {id:"story",t:"area",q:"Your story",hint:"How you started, what you do differently. Write it like you talk to a client."},
+  {id:"years",t:"text",q:"Years coaching"},
+  {id:"clients",t:"text",q:"Roughly how many clients so far?"},
+  {id:"certs",t:"area",q:"Certificates (name and year)"},
+  {id:"photos",t:"one",q:"Photos of you in the gym",opts:["I'll send them","I need to shoot some"]},
+  {id:"results",t:"one",q:"Client before/after photos (with their OK)",opts:["I have 3 or more","I have 1–2","None yet"]},
+  {id:"reviews",t:"area",q:"2–3 things clients have said about you",hint:"Copy from WhatsApp, with first name and city. Optional."}
+ ]},
+ {title:"How it works", qs:[
+  {id:"process",t:"area",q:"What happens from filling the form to the first workout?",ph:"Day 1: I call them. Day 2–3: plan is ready…"},
+  {id:"delivery",t:"one",q:"How fast is the plan ready?",opts:["Same day","1–2 days","3–5 days","1 week"]},
+  {id:"requirements",t:"area",q:"What does a client need before starting?",ph:"Scale, body photos, measurements, gym membership…"},
+  {id:"faq",t:"area",q:"Questions people DM you all the time",hint:"Add your answers too if you can",ph:"Can I train at home? …"}
+ ]},
+ {title:"The sign-up form", qs:[
+  {id:"form_keep",t:"multi",q:"Which questions should the sign-up form ask?",hint:"Tap all you want",opts:["Name, age, height, weight","WhatsApp + email","Goal","Fitness level","Training days per week","Workout length","Past coaching","Injuries / diseases","Gym type","Cardio machines","Past diets","Foods they hate","Allergies","Supplements","Wake / sleep / training times","Meal times"]},
+  {id:"form_add",t:"area",q:"Anything else you want to ask new clients?",hint:"Optional"}
+ ]},
+ {title:"Accounts", qs:[
+  {id:"accounts",t:"accounts",q:"Which of these do you already have?",items:["Google (Gmail)","GitHub","Vercel","Make.com","Domain name","PayPal business","WhatsApp Business","Meta / Instagram ads"]},
+  {id:"domain",t:"text",q:"Domain name ideas",hint:"Optional",ph:"alghul.fit, alghulcoach.com"}
+ ]},
+ {title:"Send", send:true}
+];
+
+var DESIGNS=[
+ {v:"1 · Plates",d:"Light and bold, weight-plate colours",c:["#F5F5F2","#121416","#D62B2B","#1E4FD8","#F2C200"]},
+ {v:"2 · Logbook",d:"Graph paper, handwritten training log",c:["#FBFCFE","#1B2A4A","#E0362C","#FFE873"]},
+ {v:"3 · Beast",d:"Dark plum, giant الغول logo, Arabic first",c:["#1A0E22","#2E1A3A","#EFE7DA","#FF5B1F"]},
+ {v:"4 · Readout",d:"Clean white with a calorie calculator",c:["#FFFFFF","#DDF2E7","#0E1A2B","#FF5A1F"]},
+ {v:"Not sure yet",d:"Show me again",c:["#DEE1DC"]}
+];
+
+/* ===== State (saved on this phone) ===== */
+var KEY="alghul-questions-v1", A={}, step=0;
+try{var s=JSON.parse(localStorage.getItem(KEY)||"{}");A=s.a||{};step=s.step||0;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({a:A,step:step}));document.getElementById("saved").textContent="Saved on this phone";}catch(e){}}
+
+var app=document.getElementById("app"), nav=document.getElementById("nav");
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+
+function render(){
+  var S=STEPS[step], total=STEPS.length-2;
+  document.getElementById("bar").style.width=(step/(STEPS.length-1)*100)+"%";
+  document.getElementById("stepLabel").textContent=S.intro?"Start":S.send?"Last step":("Part "+step+" of "+total+" · "+S.title);
+  var h="";
+  if(S.intro){
+    h='<h1>Questions for your website</h1><p class="lead">'+esc(SEND_TO_NAME)+' needs these to build the Al-Ghul website. About 15 minutes.</p>'+
+      '<div class="note">• Skip anything you don\'t know yet.<br>• Your answers save on this phone, so you can stop and come back.<br>• At the end, one tap sends everything to '+esc(SEND_TO_NAME)+' on WhatsApp.<br>• Photos and logo: send them in the same WhatsApp chat after.</div>';
+  } else if(S.send){
+    var parts=buildParts(), all=parts.join("\n\n");
+    var answered=countAnswered();
+    h='<h1>Send your answers</h1><p class="lead">You answered '+answered+' questions. Tap below to send them to '+esc(SEND_TO_NAME)+' on WhatsApp, then press send in WhatsApp.</p>';
+    if(parts.length===1){
+      h+='<a class="btn wa" href="'+waLink(parts[0])+'">Send on WhatsApp</a>';
+    } else {
+      h+='<div class="note">Your answers are long, so they go in '+parts.length+' messages. Tap each one in order.</div><div class="parts">';
+      parts.forEach(function(p,i){h+='<a class="btn wa" href="'+waLink(p)+'">Send part '+(i+1)+' of '+parts.length+'</a>';});
+      h+='</div>';
+    }
+    h+='<button class="btn copy" id="copy" type="button">Copy all answers</button><div class="status" id="status"></div>'+
+       '<p class="hint" style="margin-top:14px">If WhatsApp doesn\'t open: tap Copy, open WhatsApp, and paste into the chat with '+esc(SEND_TO_NAME)+' (+'+SEND_TO+').</p>'+
+       '<div class="review" aria-label="Your answers">'+esc(all)+'</div>';
+  } else {
+    h='<h1>'+esc(S.title)+'</h1>';
+    S.qs.forEach(function(q){h+=renderQ(q);});
+  }
+  app.innerHTML=h;
+  // nav
+  var n="";
+  if(step>0) n+='<button class="btn back" id="back" type="button">Back</button>';
+  if(!S.send) n+='<button class="btn next" id="next" type="button">'+(S.intro?"Start":(step===STEPS.length-2?"Review and send":"Next"))+'</button>';
+  else n+='<button class="btn next" id="edit" type="button" style="background:#fff;color:var(--ink);border:1.5px solid var(--line)">Change answers</button>';
+  nav.innerHTML=n;
+  wire();
+  window.scrollTo(0,0);
+}
+
+function renderQ(q){
+  var v=A[q.id], h='<div class="q">', lab=q.t==="text"||q.t==="tel"||q.t==="email"||q.t==="area";
+  h+= lab?'<label for="f_'+q.id+'">'+esc(q.q)+'</label>':'<div class="qt">'+esc(q.q)+'</div>';
+  if(q.hint) h+='<div class="hint">'+esc(q.hint)+'</div>';
+  if(q.t==="text"||q.t==="tel"||q.t==="email"){
+    h+='<input type="'+q.t+'" id="f_'+q.id+'" data-id="'+q.id+'" value="'+esc(v||"")+'" placeholder="'+esc(q.ph||"")+'"'+(q.t==="tel"?' inputmode="tel" dir="ltr"':'')+(q.t==="email"?' inputmode="email" autocapitalize="off"':'')+'>';
+  } else if(q.t==="area"){
+    h+='<textarea id="f_'+q.id+'" data-id="'+q.id+'" placeholder="'+esc(q.ph||"")+'">'+esc(v||"")+'</textarea>';
+  } else if(q.t==="one"||q.t==="multi"){
+    h+='<div class="chips" role="group" data-id="'+q.id+'" data-mode="'+q.t+'">';
+    q.opts.forEach(function(o){var on=q.t==="one"?v===o:(v||[]).indexOf(o)>-1;h+='<button type="button" aria-pressed="'+on+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';});
+    h+='</div>';
+  } else if(q.t==="design"){
+    h+='<div class="designs chips" role="group" data-id="'+q.id+'" data-mode="one">';
+    DESIGNS.forEach(function(d){h+='<button type="button" aria-pressed="'+(v===d.v)+'" data-v="'+esc(d.v)+'"><span class="sw">'+d.c.map(function(c){return'<i style="background:'+c+'"></i>'}).join("")+'</span><span><b>'+esc(d.v)+'</b><span>'+esc(d.d)+'</span></span></button>';});
+    h+='</div>';
+  } else if(q.t==="accounts"){
+    v=v||{};
+    h+='<div class="acct">';
+    q.items.forEach(function(it){
+      h+='<div class="row"><div class="name">'+esc(it)+'</div><div class="chips" role="group" aria-label="'+esc(it)+'" data-id="'+q.id+'" data-sub="'+esc(it)+'" data-mode="one">';
+      ["Have it","I'll make it","Need help"].forEach(function(o){h+='<button type="button" aria-pressed="'+(v[it]===o)+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';});
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+
+function wire(){
+  app.querySelectorAll("input[data-id],textarea[data-id]").forEach(function(el){
+    el.addEventListener("input",function(){A[el.dataset.id]=el.value;save();});
+  });
+  app.querySelectorAll(".chips[data-id]").forEach(function(g){
+    g.addEventListener("click",function(e){
+      var b=e.target.closest("button");if(!b)return;
+      var id=g.dataset.id, val=b.dataset.v, on=b.getAttribute("aria-pressed")==="true";
+      if(g.dataset.sub){A[id]=A[id]||{}; if(on){delete A[id][g.dataset.sub];}else{A[id][g.dataset.sub]=val;}
+        g.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",!on&&x===b)});}
+      else if(g.dataset.mode==="one"){A[id]=on?"":val; g.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",!on&&x===b)});}
+      else {var arr=A[id]||[]; if(on)arr=arr.filter(function(x){return x!==val}); else arr.push(val); A[id]=arr; b.setAttribute("aria-pressed",!on);}
+      save();
+    });
+  });
+  var nx=document.getElementById("next"), bk=document.getElementById("back"), ed=document.getElementById("edit"), cp=document.getElementById("copy");
+  if(nx) nx.onclick=function(){step++;save();render();};
+  if(bk) bk.onclick=function(){step--;save();render();};
+  if(ed) ed.onclick=function(){step=1;save();render();};
+  if(cp) cp.onclick=function(){
+    var txt=buildParts().join("\n\n"), st=document.getElementById("status");
+    function ok(){st.textContent="Copied. Now paste it in WhatsApp.";}
+    function fail(){var r=document.querySelector(".review");var sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents(r);sel.removeAllRanges();sel.addRange(rg);st.textContent="Couldn't copy automatically. The answers are selected below: long-press and copy.";}
+    try{navigator.clipboard.writeText(txt).then(ok,fail);}catch(e){fail();}
+  };
+}
+
+/* ===== Build the WhatsApp message ===== */
+function fmt(q){
+  var v=A[q.id];
+  if(v==null) return "";
+  if(Array.isArray(v)) return v.join(", ");
+  if(typeof v==="object") return Object.keys(v).map(function(k){return "\n   "+k+": "+v[k]}).join("");
+  return String(v).trim();
+}
+function sections(){
+  var out=[];
+  STEPS.forEach(function(S){
+    if(!S.qs) return;
+    var lines=[];
+    S.qs.forEach(function(q){var a=fmt(q); if(a) lines.push("• "+q.q+": "+(a.indexOf("\n")>-1&&q.t==="area"?"\n"+a:a));});
+    if(lines.length) out.push("*"+S.title+"*\n"+lines.join("\n"));
+  });
+  return out;
+}
+function countAnswered(){var n=0;STEPS.forEach(function(S){(S.qs||[]).forEach(function(q){if(fmt(q))n++;});});return n;}
+function buildParts(){
+  var head="*Al-Ghul website answers*"+(A.name?" from "+A.name:""), secs=sections(), LIMIT=1800, parts=[], cur=head;
+  if(!secs.length) return [head+"\n\n(No answers yet)"];
+  secs.forEach(function(s){
+    if((cur+"\n\n"+s).length>LIMIT && cur!==head){parts.push(cur);cur=s;}
+    else cur=cur+"\n\n"+s;
+  });
+  parts.push(cur);
+  if(parts.length>1) parts=parts.map(function(p,i){return "("+(i+1)+"/"+parts.length+")\n"+p;});
+  return parts;
+}
+function waLink(text){return "https://wa.me/"+SEND_TO+"?text="+encodeURIComponent(text);}
+
+if(step>=STEPS.length) step=0;
+render();
+</script>
+</body>
+</html>
